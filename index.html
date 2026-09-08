@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+  <meta name="theme-color" content="#101112">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="MiniPrompter">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="icons/icon.svg">
+  <link rel="stylesheet" href="styles.css">
+  <title>MiniPrompter</title>
+</head>
+<body>
+  <main id="libraryView" class="screen library-screen">
+    <header class="library-header">
+      <div class="brand-row">
+        <img class="brand-icon" src="icons/icon.svg" alt="">
+        <div><p class="eyebrow">TELEPROMPTER</p><h1>Mis discursos</h1></div>
+        <button id="newButton" class="icon-button primary" aria-label="Nuevo discurso">＋</button>
+      </div>
+      <label class="search"><span>⌕</span><input id="searchInput" type="search" placeholder="Buscar…" autocomplete="off"></label>
+      <div class="library-actions">
+        <button id="importTextButton">Importar texto</button>
+        <button id="backupButton">Respaldar</button>
+        <button id="restoreButton">Restaurar</button>
+        <input id="fileInput" type="file" accept=".txt,text/plain" hidden>
+        <input id="backupInput" type="file" accept=".json,application/json" hidden>
+      </div>
+    </header>
+    <section id="emptyState" class="empty-state" hidden>
+      <img src="icons/icon.svg" alt="">
+      <h2>Tu primer discurso</h2>
+      <p>Escribe o importa un texto para comenzar.</p>
+      <button id="emptyNewButton" class="primary-button">Crear discurso</button>
+    </section>
+    <section id="scriptGrid" class="script-grid" aria-live="polite"></section>
+  </main>
+
+  <main id="editorView" class="screen editor-screen" hidden>
+    <header class="nav-bar">
+      <button id="editorBack" class="text-button">‹ Volver</button>
+      <span>Editar discurso</span>
+      <button id="deleteButton" class="danger-button" aria-label="Eliminar">Eliminar</button>
+    </header>
+    <section class="editor-content">
+      <label for="titleInput">Título</label>
+      <input id="titleInput" class="title-input" maxlength="100" placeholder="Sin título">
+      <label for="bodyInput">Texto</label>
+      <textarea id="bodyInput" placeholder="Escribe tu discurso…" spellcheck="true"></textarea>
+      <div class="editor-footer">
+        <span id="wordCount">0 palabras</span>
+        <button id="playButton" class="primary-button">▶ Reproducir</button>
+      </div>
+    </section>
+  </main>
+
+  <main id="prompterView" class="screen prompter-screen" hidden>
+    <div id="prompterStage" class="prompter-stage">
+      <header id="prompterHeader" class="prompter-header">
+        <button id="prompterBack" class="text-button">‹ Volver</button>
+        <span id="prompterTitle">Discurso</span>
+        <button id="settingsButton" class="icon-button" aria-label="Ajustes">⚙︎</button>
+      </header>
+      <div id="scrollViewport" class="scroll-viewport">
+        <div id="scriptTransform" class="script-transform">
+          <article id="prompterText" class="prompter-text"></article>
+        </div>
+      </div>
+      <div id="cue" class="cue" aria-hidden="true"></div>
+      <div id="countdownOverlay" class="countdown-overlay" hidden>
+        <strong id="countdownNumber"></strong>
+        <span id="countdownMessage"></span>
+      </div>
+      <section id="controls" class="controls">
+        <div class="speed-row">
+          <span aria-hidden="true">🐢</span>
+          <input id="speedSlider" type="range" min="1" max="20" step="1" value="5" aria-label="Velocidad">
+          <span aria-hidden="true">🐇</span>
+          <output id="speedOutput">5</output>
+        </div>
+        <div class="control-row">
+          <button id="restartButton" aria-label="Reiniciar">↤</button>
+          <button id="startButton" class="primary-button">Iniciar</button>
+          <button id="mirrorHButton" aria-label="Invertir horizontalmente">↔</button>
+          <button id="mirrorVButton" aria-label="Invertir verticalmente">↕</button>
+          <button id="hideButton" aria-label="Ocultar controles">◉</button>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <dialog id="settingsDialog">
+    <form method="dialog">
+      <header><button value="cancel" class="text-button">Cerrar</button><strong>Ajustes</strong><button value="ok" class="text-button">Listo</button></header>
+      <div class="settings-body">
+        <label>Tamaño del texto <output id="fontOutput">62</output><input id="fontSlider" type="range" min="28" max="104" step="2" value="62"></label>
+        <label>Márgenes <output id="marginOutput">8%</output><input id="marginSlider" type="range" min="2" max="24" step="1" value="8"></label>
+        <label>Cuenta regresiva <select id="countdownSelect"><option value="0">Sin cuenta</option><option value="3">3 segundos</option><option value="5" selected>5 segundos</option><option value="10">10 segundos</option><option value="15">15 segundos</option><option value="20">20 segundos</option></select></label>
+        <label class="toggle-row"><span>Indicador lateral</span><input id="cueToggle" type="checkbox" checked></label>
+        <label class="toggle-row"><span>Ocultar controles al iniciar</span><input id="autoHideToggle" type="checkbox" checked></label>
+        <button id="fullscreenButton" type="button" class="settings-action">Usar pantalla completa</button>
+        <button id="wakeLockButton" type="button" class="settings-action">Mantener pantalla encendida</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div id="toast" class="toast" role="status" hidden></div>
+  <script src="app.js" defer></script>
+</body>
+</html>
