@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="MiniPrompter">
   <link rel="manifest" href="manifest.webmanifest">
-  <link rel="apple-touch-icon" href="icons/icon.svg">
+  <link rel="apple-touch-icon" sizes="180x180" href="icons/icon-180.png">
   <link rel="stylesheet" href="styles.css">
   <title>MiniPrompter</title>
 </head>
@@ -18,13 +18,13 @@
       <div class="brand-row">
         <img class="brand-icon" src="icons/icon.svg" alt="">
         <div><p class="eyebrow">TELEPROMPTER</p><h1>Mis discursos</h1></div>
-        <button id="newButton" class="icon-button primary" aria-label="Nuevo discurso">＋</button>
+        <button id="newButton" class="icon-button primary" aria-label="Nuevo discurso"><img src="icons/ui/plus-circle-fill.svg" alt=""></button>
       </div>
       <label class="search"><span>⌕</span><input id="searchInput" type="search" placeholder="Buscar…" autocomplete="off"></label>
       <div class="library-actions">
-        <button id="importTextButton">Importar texto</button>
-        <button id="backupButton">Respaldar</button>
-        <button id="restoreButton">Restaurar</button>
+        <button id="importTextButton"><img src="icons/ui/file-earmark-arrow-up.svg" alt="">Importar texto</button>
+        <button id="backupButton"><img src="icons/ui/download.svg" alt="">Respaldar</button>
+        <button id="restoreButton"><img src="icons/ui/upload.svg" alt="">Restaurar</button>
         <input id="fileInput" type="file" accept=".txt,text/plain" hidden>
         <input id="backupInput" type="file" accept=".json,application/json" hidden>
       </div>
@@ -40,18 +40,30 @@
 
   <main id="editorView" class="screen editor-screen" hidden>
     <header class="nav-bar">
-      <button id="editorBack" class="text-button">‹ Volver</button>
+      <button id="editorBack" class="text-button"><img src="icons/ui/chevron-left.svg" alt="">Volver</button>
       <span>Editar discurso</span>
-      <button id="deleteButton" class="danger-button" aria-label="Eliminar">Eliminar</button>
+      <button id="deleteButton" class="danger-button" aria-label="Eliminar"><img src="icons/ui/trash3.svg" alt=""></button>
     </header>
     <section class="editor-content">
       <label for="titleInput">Título</label>
       <input id="titleInput" class="title-input" maxlength="100" placeholder="Sin título">
-      <label for="bodyInput">Texto</label>
-      <textarea id="bodyInput" placeholder="Escribe tu discurso…" spellcheck="true"></textarea>
+      <div class="editor-label-row"><label for="bodyInput">Texto</label><span>Formato de todo el discurso</span></div>
+      <div class="format-toolbar" role="toolbar" aria-label="Formato del discurso">
+        <select id="fontFamilySelect" aria-label="Tipografía">
+          <option value="system">Sistema</option><option value="avenir">Avenir</option><option value="georgia">Georgia</option><option value="helvetica">Helvetica</option><option value="menlo">Menlo</option>
+        </select>
+        <button id="boldButton" type="button" aria-label="Negrita"><img src="icons/ui/type-bold.svg" alt=""></button>
+        <button id="italicButton" type="button" aria-label="Cursiva"><img src="icons/ui/type-italic.svg" alt=""></button>
+        <button id="underlineButton" type="button" aria-label="Subrayado"><img src="icons/ui/type-underline.svg" alt=""></button>
+        <button id="strikeButton" type="button" aria-label="Tachado"><img src="icons/ui/type-strikethrough.svg" alt=""></button>
+        <select id="caseSelect" aria-label="Mayúsculas y minúsculas">
+          <option value="">Cambiar mayúsculas…</option><option value="upper">UPPERCASE</option><option value="lower">lowercase</option><option value="sentence">Tipo oración</option>
+        </select>
+      </div>
+      <div id="bodyInput" class="rich-editor" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Texto del discurso" data-placeholder="Escribe tu discurso…" spellcheck="true"></div>
       <div class="editor-footer">
         <span id="wordCount">0 palabras</span>
-        <button id="playButton" class="primary-button">▶ Reproducir</button>
+        <button id="playButton" class="primary-button"><img src="icons/ui/play-fill.svg" alt="">Reproducir</button>
       </div>
     </section>
   </main>
@@ -59,9 +71,9 @@
   <main id="prompterView" class="screen prompter-screen" hidden>
     <div id="prompterStage" class="prompter-stage">
       <header id="prompterHeader" class="prompter-header">
-        <button id="prompterBack" class="text-button">‹ Volver</button>
+        <button id="prompterBack" class="text-button"><img src="icons/ui/chevron-left.svg" alt="">Volver</button>
         <span id="prompterTitle">Discurso</span>
-        <button id="settingsButton" class="icon-button" aria-label="Ajustes">⚙︎</button>
+        <button id="settingsButton" class="icon-button" aria-label="Ajustes"><img src="icons/ui/gear-fill.svg" alt=""></button>
       </header>
       <div id="scrollViewport" class="scroll-viewport">
         <div id="scriptTransform" class="script-transform">
@@ -75,17 +87,18 @@
       </div>
       <section id="controls" class="controls">
         <div class="speed-row">
-          <span aria-hidden="true">🐢</span>
+          <img class="animal-icon" src="icons/ui/tortoise.svg" alt="Lento">
           <input id="speedSlider" type="range" min="1" max="20" step="1" value="5" aria-label="Velocidad">
-          <span aria-hidden="true">🐇</span>
-          <output id="speedOutput">5 · 116 ppm</output>
+          <img class="animal-icon" src="icons/ui/hare.svg" alt="Rápido">
+          <output id="speedOutput">5 · 5,8 líneas/s</output>
         </div>
         <div class="control-row">
-          <button id="restartButton" aria-label="Reiniciar">↤</button>
-          <button id="startButton" class="primary-button">Iniciar</button>
-          <button id="mirrorHButton" aria-label="Invertir horizontalmente">↔</button>
-          <button id="mirrorVButton" aria-label="Invertir verticalmente">↕</button>
-          <button id="hideButton" aria-label="Ocultar controles">◉</button>
+          <button id="restartButton" aria-label="Volver al inicio"><img src="icons/ui/skip-start-fill.svg" alt=""></button>
+          <button id="startButton" class="round-control" aria-label="Iniciar"><img id="playIcon" src="icons/ui/play-fill.svg" alt=""></button>
+          <button id="mirrorVButton" aria-label="Invertir verticalmente"><img src="icons/ui/arrow-down-up.svg" alt=""></button>
+          <button id="mirrorHButton" aria-label="Invertir horizontalmente"><img src="icons/ui/arrow-left-right.svg" alt=""></button>
+          <button id="fontDownButton" aria-label="Letra más pequeña"><img class="type-small" src="icons/ui/type.svg" alt=""></button>
+          <button id="fontUpButton" aria-label="Letra más grande"><img class="type-large" src="icons/ui/type.svg" alt=""></button>
         </div>
       </section>
     </div>
@@ -93,10 +106,11 @@
 
   <dialog id="settingsDialog">
     <form method="dialog">
-      <header><button value="cancel" class="text-button">Cerrar</button><strong>Ajustes</strong><button value="ok" class="text-button">Listo</button></header>
+      <header><button value="cancel" class="text-button">Volver</button><strong>Ajustes</strong><button value="ok" class="text-button">Listo</button></header>
       <div class="settings-body">
         <label>Tamaño del texto <output id="fontOutput">62</output><input id="fontSlider" type="range" min="28" max="104" step="2" value="62"></label>
         <label>Márgenes <output id="marginOutput">8%</output><input id="marginSlider" type="range" min="2" max="24" step="1" value="8"></label>
+        <label class="color-row"><span>Color del texto</span><input id="textColorInput" type="color" value="#ffffff"></label>
         <label>Cuenta regresiva <select id="countdownSelect"><option value="0">Sin cuenta</option><option value="3">3 segundos</option><option value="5" selected>5 segundos</option><option value="10">10 segundos</option><option value="15">15 segundos</option><option value="20">20 segundos</option></select></label>
         <label class="toggle-row"><span>Indicador lateral</span><input id="cueToggle" type="checkbox" checked></label>
         <label class="toggle-row"><span>Ocultar controles al iniciar</span><input id="autoHideToggle" type="checkbox" checked></label>

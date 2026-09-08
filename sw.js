@@ -1,5 +1,5 @@
-const CACHE='miniprompter-v4';
-const ASSETS=['./','./index.html','./styles.css','./app.js','./manifest.webmanifest','./icons/icon.svg'];
+const CACHE='miniprompter-v5';
+const ASSETS=['./','./index.html','./styles.css','./app.js','./manifest.webmanifest','./icons/icon.svg','./icons/icon-180.png','./icons/icon-192.png','./icons/icon-512.png','./icons/ui/plus-circle-fill.svg','./icons/ui/file-earmark-arrow-up.svg','./icons/ui/download.svg','./icons/ui/upload.svg','./icons/ui/chevron-left.svg','./icons/ui/trash3.svg','./icons/ui/play-fill.svg','./icons/ui/pause-fill.svg','./icons/ui/gear-fill.svg','./icons/ui/skip-start-fill.svg','./icons/ui/arrow-down-up.svg','./icons/ui/arrow-left-right.svg','./icons/ui/type.svg','./icons/ui/type-bold.svg','./icons/ui/type-italic.svg','./icons/ui/type-underline.svg','./icons/ui/type-strikethrough.svg','./icons/ui/tortoise.svg','./icons/ui/hare.svg'];
 self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(ASSETS)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
 self.addEventListener('fetch',event=>{if(event.request.method!=='GET')return;event.respondWith(fetch(event.request).then(response=>{const copy=response.clone();caches.open(CACHE).then(cache=>cache.put(event.request,copy));return response;}).catch(()=>caches.match(event.request).then(hit=>hit||caches.match('./index.html'))));});
