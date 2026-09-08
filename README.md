@@ -1,6 +1,6 @@
 # MiniPrompter Web
 
-PWA instalable para iPhone. Guarda la biblioteca en el almacenamiento local del navegador y funciona sin conexión después de la primera carga.
+PWA instalable para iPhone y iPad. Guarda la biblioteca en el almacenamiento local del navegador y funciona sin conexión después de la primera carga.
 
 ## Probar localmente
 
@@ -14,4 +14,4 @@ Abre la dirección publicada con Safari, toca Compartir, elige **Añadir a panta
 
 Cada instalación guarda su propia biblioteca. Usa **Respaldar** y elige iCloud Drive en la hoja de compartir. En el segundo dispositivo usa **Restaurar** para cargar ese JSON. iCloud Drive puede sincronizar esta carpeta de código entre Mac, pero no actúa como servidor web ni sincroniza por sí mismo el almacenamiento de Safari.
 
-Incluye biblioteca, búsqueda, editor con ajuste de línea, importación de texto, velocidad 1–20, desplazamiento, pausa, reinicio, indicador lateral adaptado al espejo horizontal, espejo horizontal y vertical, cuenta regresiva con aviso rojo durante los últimos tres segundos, pantalla completa, bloqueo de suspensión, funcionamiento sin conexión y respaldo/restauración.
+Incluye biblioteca, búsqueda, editor con ajuste de línea, importación de texto, 20 niveles de velocidad entre 80 y 250 palabras por minuto, desplazamiento, pausa, reinicio, indicador lateral adaptado al espejo horizontal, espejo horizontal y vertical, cuenta regresiva con aviso rojo durante los últimos tres segundos, diseño adaptable para iPhone y iPad, pantalla completa, bloqueo de suspensión, funcionamiento sin conexión y respaldo/restauración.
