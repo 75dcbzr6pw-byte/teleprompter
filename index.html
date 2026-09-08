@@ -78,7 +78,7 @@
           <span aria-hidden="true">🐢</span>
           <input id="speedSlider" type="range" min="1" max="20" step="1" value="5" aria-label="Velocidad">
           <span aria-hidden="true">🐇</span>
-          <output id="speedOutput">5</output>
+          <output id="speedOutput">5 · 116 ppm</output>
         </div>
         <div class="control-row">
           <button id="restartButton" aria-label="Reiniciar">↤</button>
@@ -102,6 +102,7 @@
         <label class="toggle-row"><span>Ocultar controles al iniciar</span><input id="autoHideToggle" type="checkbox" checked></label>
         <button id="fullscreenButton" type="button" class="settings-action">Usar pantalla completa</button>
         <button id="wakeLockButton" type="button" class="settings-action">Mantener pantalla encendida</button>
+        <small id="wakeLockStatus" class="setting-status" aria-live="polite">Se activa automáticamente al reproducir.</small>
       </div>
     </form>
   </dialog>
