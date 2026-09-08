@@ -8,7 +8,7 @@
   const DEFAULT_STYLE = {font:'system',bold:false,italic:false,underline:false,strike:false};
   const FONT_STACKS = {system:'-apple-system,BlinkMacSystemFont,"SF Pro Display",sans-serif',avenir:'"Avenir Next",Avenir,sans-serif',georgia:'Georgia,serif',helvetica:'"Helvetica Neue",Helvetica,sans-serif',menlo:'Menlo,monospace'};
   let settings = {...{speed:5,font:62,margin:8,countdown:5,cue:true,autoHide:true,mirrorH:false,mirrorV:false,textColor:'#ffffff'}, ...loadJSON(SETTINGS_KEY,{})};
-  let activeId = null, scrolling = false, countdownActive = false, raf = 0, lastFrame = 0, countdownTimer = 0, wakeLock = null, toastTimer = 0;
+  let activeId = null, scrolling = false, countdownActive = false, raf = 0, lastFrame = 0, scrollPosition = 0, countdownTimer = 0, wakeLock = null, toastTimer = 0;
 
   function loadJSON(key, fallback) { try { return JSON.parse(localStorage.getItem(key)) ?? fallback; } catch { return fallback; } }
   function saveLibrary() { localStorage.setItem(STORAGE_KEY, JSON.stringify(library)); }
@@ -18,7 +18,7 @@
   function current() { return library.find(x => x.id === activeId); }
   function escapeHTML(value) { const d=document.createElement('div'); d.textContent=value; return d.innerHTML; }
   function formatDate(value) { return new Intl.DateTimeFormat('es',{day:'2-digit',month:'short'}).format(new Date(value)); }
-  function linesPerSecond(level=settings.speed) { return 2+(Math.max(1,Math.min(20,Number(level)))-1)*(18/19); }
+  function linesPerSecond(level=settings.speed) { return .5+(Math.max(1,Math.min(20,Number(level)))-1)*(19.5/19); }
   function updateSpeedDisplay(){ const level=Number(settings.speed); const lines=linesPerSecond(level); const label=Number.isInteger(lines)?String(lines):lines.toFixed(1).replace('.',','); $('speedOutput').value=`${level} · ${label} líneas/s`; $('speedSlider').setAttribute('aria-valuetext',`Nivel ${level}, ${label} líneas por segundo`); }
   function speechStyle(s=current()){ return {...DEFAULT_STYLE,...(s?.style||{})}; }
   function setEditorStyle(style=speechStyle()){
@@ -41,7 +41,7 @@
   function saveEditor() { const s=current(); if(!s)return; s.title=$('titleInput').value.trim()||'Sin título'; s.body=editorText(); s.updated=Date.now(); saveLibrary(); }
   function updateWordCount(){ const text=editorText().trim(); const n=text?text.split(/\s+/).length:0; $('wordCount').textContent=`${n} ${n===1?'palabra':'palabras'}`; $('playButton').disabled=!text; }
   function leaveEditor(){ saveEditor(); renderLibrary(); showScreen('libraryView'); }
-  function openPrompter(){ saveEditor(); const s=current(); if(!s?.body.trim())return; $('prompterTitle').textContent=s.title; $('prompterText').textContent=s.body; applySettings(); resetPrompter(); showScreen('prompterView'); }
+  function openPrompter(){ saveEditor(); const s=current(); if(!s?.body.trim())return; $('prompterTitle').textContent=s.title; $('prompterText').textContent=s.body; showScreen('prompterView'); applySettings(); resetPrompter(); }
   function applySettings(){
     document.documentElement.style.setProperty('--prompt-font',settings.font+'px'); document.documentElement.style.setProperty('--prompt-margin',settings.margin+'vw'); document.documentElement.style.setProperty('--prompt-color',settings.textColor);
     $('speedSlider').value=settings.speed; updateSpeedDisplay(); $('fontSlider').value=settings.font; $('fontOutput').value=settings.font; $('marginSlider').value=settings.margin; $('marginOutput').value=settings.margin+'%'; $('textColorInput').value=settings.textColor; $('countdownSelect').value=String(settings.countdown); $('cueToggle').checked=settings.cue; $('autoHideToggle').checked=settings.autoHide;
@@ -49,9 +49,11 @@
     $('scriptTransform').className='script-transform'+(settings.mirrorH?' mirrored-h':'')+(settings.mirrorV?' mirrored-v':'');
     $('mirrorHButton').classList.toggle('active',settings.mirrorH); $('mirrorVButton').classList.toggle('active',settings.mirrorV);
     $('cue').hidden=!settings.cue; $('cue').classList.toggle('right',settings.mirrorH);
+    if(!$('prompterView').hidden&&!scrolling)positionFirstLine();
   }
   function setPlayState(playing){ $('playIcon').src=playing?'icons/ui/pause-fill.svg':'icons/ui/play-fill.svg'; $('startButton').setAttribute('aria-label',playing?'Pausar':'Iniciar'); }
-  function resetPrompter(){ stopScroll(); countdownActive=false; clearInterval(countdownTimer); $('countdownOverlay').hidden=true; $('scrollViewport').scrollTop=0; setPlayState(false); $('controls').classList.remove('hidden'); }
+  function positionFirstLine(){ const viewport=$('scrollViewport'), text=$('prompterText'), controls=$('controls'); const lineHeight=parseFloat(getComputedStyle(text).lineHeight)||settings.font*1.28; const controlsHeight=controls.getBoundingClientRect().height; text.style.paddingTop=Math.max(100,viewport.clientHeight-controlsHeight-lineHeight-28)+'px'; }
+  function resetPrompter(){ stopScroll(); countdownActive=false; clearInterval(countdownTimer); $('countdownOverlay').hidden=true; $('controls').classList.remove('hidden'); positionFirstLine(); scrollPosition=0; $('scrollViewport').scrollTop=0; setPlayState(false); }
   function stopScroll(){ scrolling=false; cancelAnimationFrame(raf); raf=0; lastFrame=0; setPlayState(false); releaseWakeLock(); }
   function startCountdown(){
     if(scrolling){stopScroll();return;} requestWakeLock(); let remaining=Number(settings.countdown);
@@ -60,9 +62,9 @@
     const draw=()=>{ $('countdownNumber').textContent=remaining; const warn=remaining<=3; overlay.classList.toggle('warning',warn); $('countdownMessage').textContent=warn?'MANTÉNGASE QUIETO':''; };
     draw(); clearInterval(countdownTimer); countdownTimer=setInterval(()=>{remaining--; if(remaining<=0){clearInterval(countdownTimer);countdownActive=false;overlay.hidden=true;overlay.classList.remove('warning');beginScroll();}else draw();},1000);
   }
-  function beginScroll(){ scrolling=true; setPlayState(true); if(settings.autoHide)$('controls').classList.add('hidden'); requestWakeLock(); lastFrame=performance.now(); raf=requestAnimationFrame(step); }
+  function beginScroll(){ scrolling=true; scrollPosition=$('scrollViewport').scrollTop; setPlayState(true); if(settings.autoHide)$('controls').classList.add('hidden'); requestWakeLock(); lastFrame=performance.now(); raf=requestAnimationFrame(step); }
   function scrollRate(){ const lineHeight=parseFloat(getComputedStyle($('prompterText')).lineHeight)||settings.font*1.28; return lineHeight*linesPerSecond(); }
-  function step(now){ if(!scrolling)return; const dt=Math.min((now-lastFrame)/1000,.05);lastFrame=now;const viewport=$('scrollViewport');viewport.scrollTop+=scrollRate()*dt;if(viewport.scrollTop+viewport.clientHeight>=viewport.scrollHeight-2){stopScroll();$('controls').classList.remove('hidden');return;}raf=requestAnimationFrame(step); }
+  function step(now){ if(!scrolling)return; const dt=Math.min((now-lastFrame)/1000,.05);lastFrame=now;const viewport=$('scrollViewport');scrollPosition+=scrollRate()*dt;viewport.scrollTop=scrollPosition;if(viewport.scrollTop+viewport.clientHeight>=viewport.scrollHeight-2){stopScroll();$('controls').classList.remove('hidden');return;}raf=requestAnimationFrame(step); }
   function updateWakeLockStatus(message,active=false){ $('wakeLockStatus').textContent=message; $('wakeLockButton').classList.toggle('active',active); }
   async function requestWakeLock({notify=false}={}){
     if(!('wakeLock'in navigator)){ updateWakeLockStatus('Este navegador no ofrece bloqueo de pantalla.'); if(notify)toast('Instálala desde Safari para mantener la pantalla encendida'); return false; }
@@ -96,6 +98,7 @@
   $('importTextButton').onclick=()=>$('fileInput').click(); $('fileInput').onchange=e=>{if(e.target.files[0])importText(e.target.files[0]);e.target.value='';}; $('backupButton').onclick=exportBackup; $('restoreButton').onclick=()=>$('backupInput').click(); $('backupInput').onchange=e=>{if(e.target.files[0])restoreBackup(e.target.files[0]);e.target.value='';};
   window.addEventListener('popstate',()=>{if(!$('prompterView').hidden){resetPrompter();showScreen('editorView');}else if(!$('editorView').hidden)leaveEditor();});
   document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&(scrolling||countdownActive))requestWakeLock();});
+  window.addEventListener('resize',()=>{if(!$('prompterView').hidden&&!scrolling){positionFirstLine();$('scrollViewport').scrollTop=0;}});
   if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js'));
   applySettings();renderLibrary();
 })();
