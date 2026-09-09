@@ -8,7 +8,7 @@
   const DEFAULT_STYLE = {font:'system',bold:false,italic:false,underline:false,strike:false};
   const FONT_STACKS = {system:'-apple-system,BlinkMacSystemFont,"SF Pro Display",sans-serif',avenir:'"Avenir Next",Avenir,sans-serif',georgia:'Georgia,serif',helvetica:'"Helvetica Neue",Helvetica,sans-serif',menlo:'Menlo,monospace'};
   let settings = {...{speed:5,font:62,margin:8,countdown:5,cue:true,autoHide:true,mirrorH:false,mirrorV:false,textColor:'#ffffff'}, ...loadJSON(SETTINGS_KEY,{})};
-  let activeId = null, scrolling = false, countdownActive = false, raf = 0, lastFrame = 0, scrollPosition = 0, countdownTimer = 0, wakeLock = null, toastTimer = 0, savedRange = null;
+  let activeId = null, scrolling = false, countdownActive = false, raf = 0, lastFrame = 0, scrollPosition = 0, countdownTimer = 0, wakeLock = null, toastTimer = 0, savedRange = null, settingsPlaybackState = 'idle';
 
   function loadJSON(key, fallback) { try { return JSON.parse(localStorage.getItem(key)) ?? fallback; } catch { return fallback; } }
   function saveLibrary() { localStorage.setItem(STORAGE_KEY, JSON.stringify(library)); }
@@ -151,15 +151,22 @@
     text.style.paddingTop=Math.max(100,readingBottom-lineHeight)+'px';
     text.style.paddingBottom=Math.max(controlsRect.height+20,viewport.clientHeight-readingBottom)+'px';
   }
-  function updateLayoutSetting(key,value){
+  function resumeScrollAfterSetting(){
+    scrolling=true; setPlayState(true); requestWakeLock(); lastFrame=performance.now();
+    if(!raf)raf=requestAnimationFrame(step);
+  }
+  function updateSetting(key,value,{layout=false,apply=true}={}){
     const viewport=$('scrollViewport');
+    const keepPlaying=scrolling||settingsPlaybackState==='playing';
     const maximumBefore=Math.max(0,viewport.scrollHeight-viewport.clientHeight);
-    const progress=maximumBefore ? Math.min(1,scrollPosition/maximumBefore) : 0;
-    settings[key]=value; saveSettings(); applySettings();
-    if(scrolling){
+    const positionBefore=Math.max(scrollPosition,viewport.scrollTop);
+    const progress=maximumBefore ? Math.min(1,positionBefore/maximumBefore) : 0;
+    settings[key]=value; saveSettings(); if(apply)applySettings();
+    if(layout&&keepPlaying){
       const maximumAfter=Math.max(0,viewport.scrollHeight-viewport.clientHeight);
       scrollPosition=progress*maximumAfter; viewport.scrollTop=scrollPosition;
     }
+    if(keepPlaying&&!scrolling)resumeScrollAfterSetting();
   }
   function resetPrompter(){ stopScroll(); countdownActive=false; clearInterval(countdownTimer); $('countdownOverlay').hidden=true; $('controls').classList.remove('hidden'); positionFirstLine(); scrollPosition=0; $('scrollViewport').scrollTop=0; setPlayState(false); }
   function stopScroll(){ scrolling=false; cancelAnimationFrame(raf); raf=0; lastFrame=0; setPlayState(false); releaseWakeLock(); }
@@ -198,20 +205,23 @@
   $('caseSelect').onchange=e=>{if(e.target.value)changeSelectedCase(e.target.value);e.target.value='';};
   document.addEventListener('selectionchange',rememberSelection);
   $('deleteButton').onclick=()=>{if(!current()||!confirm('¿Eliminar este discurso?'))return;library=library.filter(s=>s.id!==activeId);saveLibrary();renderLibrary();showScreen('libraryView');};
-  $('prompterBack').onclick=()=>{resetPrompter();showScreen('editorView');}; $('settingsButton').onclick=()=>{syncViewportHeight();applySettings();$('settingsDialog').showModal();}; $('startButton').onclick=startCountdown; $('restartButton').onclick=resetPrompter;
-  $('speedSlider').oninput=e=>{settings.speed=Number(e.target.value);updateSpeedDisplay();saveSettings();};
-  $('mirrorHButton').onclick=()=>{settings.mirrorH=!settings.mirrorH;saveSettings();applySettings();}; $('mirrorVButton').onclick=()=>{settings.mirrorV=!settings.mirrorV;saveSettings();applySettings();};
-  $('fontDownButton').onclick=()=>updateLayoutSetting('font',Math.max(28,settings.font-2)); $('fontUpButton').onclick=()=>updateLayoutSetting('font',Math.min(104,settings.font+2)); $('prompterStage').addEventListener('click',e=>{if(!e.target.closest('button,input,.controls,.prompter-header'))$('controls').classList.toggle('hidden');});
-  $('scrollViewport').addEventListener('pointerdown',()=>{if(scrolling)stopScroll();},{passive:true});
-  $('fontSlider').oninput=e=>updateLayoutSetting('font',Number(e.target.value)); $('marginSlider').oninput=e=>updateLayoutSetting('margin',Number(e.target.value)); $('textColorInput').oninput=e=>{settings.textColor=e.target.value;saveSettings();applySettings();}; document.querySelectorAll('input[name="countdown"]').forEach(input=>input.onchange=e=>{if(!e.target.checked)return;settings.countdown=Number(e.target.value);saveSettings();}); $('cueToggle').onchange=e=>{settings.cue=e.target.checked;saveSettings();applySettings();}; $('autoHideToggle').onchange=e=>{settings.autoHide=e.target.checked;saveSettings();}; $('fullscreenButton').onclick=fullscreen; $('wakeLockButton').onclick=()=>requestWakeLock({notify:true});
+  $('prompterBack').onclick=()=>{resetPrompter();showScreen('editorView');}; $('settingsButton').onclick=()=>{settingsPlaybackState=scrolling?'playing':countdownActive?'countdown':'paused';syncViewportHeight();applySettings();$('settingsDialog').showModal();}; $('startButton').onclick=startCountdown; $('restartButton').onclick=resetPrompter;
+  $('settingsDialog').addEventListener('close',()=>{if(settingsPlaybackState==='playing'&&!scrolling)resumeScrollAfterSetting();settingsPlaybackState='idle';});
+  $('settingsDialog').addEventListener('pointerdown',event=>event.stopPropagation());
+  $('speedSlider').oninput=e=>{updateSetting('speed',Number(e.target.value),{apply:false});updateSpeedDisplay();};
+  $('mirrorHButton').onclick=()=>updateSetting('mirrorH',!settings.mirrorH); $('mirrorVButton').onclick=()=>updateSetting('mirrorV',!settings.mirrorV);
+  $('fontDownButton').onclick=()=>updateSetting('font',Math.max(28,settings.font-2),{layout:true}); $('fontUpButton').onclick=()=>updateSetting('font',Math.min(104,settings.font+2),{layout:true}); $('prompterStage').addEventListener('click',e=>{if(!e.target.closest('button,input,.controls,.prompter-header'))$('controls').classList.toggle('hidden');});
+  $('scrollViewport').addEventListener('pointerdown',()=>{if(scrolling&&!$('settingsDialog').open)stopScroll();},{passive:true});
+  $('fontSlider').oninput=e=>updateSetting('font',Number(e.target.value),{layout:true}); $('marginSlider').oninput=e=>updateSetting('margin',Number(e.target.value),{layout:true}); $('textColorInput').oninput=e=>updateSetting('textColor',e.target.value); document.querySelectorAll('input[name="countdown"]').forEach(input=>input.onchange=e=>{if(e.target.checked)updateSetting('countdown',Number(e.target.value),{apply:false});}); $('cueToggle').onchange=e=>updateSetting('cue',e.target.checked); $('autoHideToggle').onchange=e=>updateSetting('autoHide',e.target.checked,{apply:false}); $('fullscreenButton').onclick=fullscreen; $('wakeLockButton').onclick=()=>requestWakeLock({notify:true});
   $('importTextButton').onclick=()=>$('fileInput').click(); $('fileInput').onchange=e=>{if(e.target.files[0])importText(e.target.files[0]);e.target.value='';}; $('backupButton').onclick=exportBackup; $('restoreButton').onclick=()=>$('backupInput').click(); $('backupInput').onchange=e=>{if(e.target.files[0])restoreBackup(e.target.files[0]);e.target.value='';};
   window.addEventListener('popstate',()=>{if(!$('prompterView').hidden){resetPrompter();showScreen('editorView');}else if(!$('editorView').hidden)leaveEditor();});
   document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&(scrolling||countdownActive))requestWakeLock();});
   function handleViewportChange(){
     syncViewportHeight();
-    if(!$('prompterView').hidden&&!scrolling){positionFirstLine();scrollPosition=0;$('scrollViewport').scrollTop=0;}
+    const keepPlaying=scrolling||settingsPlaybackState==='playing';
+    if(!$('prompterView').hidden&&!keepPlaying){positionFirstLine();scrollPosition=0;$('scrollViewport').scrollTop=0;}
   }
-  window.addEventListener('resize',handleViewportChange); window.addEventListener('orientationchange',handleViewportChange); window.visualViewport?.addEventListener('resize',handleViewportChange);
+  window.addEventListener('resize',handleViewportChange); window.addEventListener('orientationchange',handleViewportChange); window.visualViewport?.addEventListener('resize',handleViewportChange); window.visualViewport?.addEventListener('scroll',syncViewportHeight);
   if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js'));
   window.MiniPrompterDiagnostics={viewport:viewportMetrics};
   syncViewportHeight();applySettings();renderLibrary();
