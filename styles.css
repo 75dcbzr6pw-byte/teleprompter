@@ -96,3 +96,74 @@ input[type=range]::-moz-range-thumb{width:32px;height:32px;border:0;border-radiu
   .editor-scroll{padding:24px 32px 18px}
   .editor-footer{padding-left:32px;padding-right:32px;padding-bottom:18px}
 }
+
+/* Full-height prompter and unified settings sheet */
+html,body{width:100%;height:100%}
+body.prompter-active{height:var(--app-viewport-height,100dvh);overflow:hidden;background:#000}
+.prompter-screen{inset:0 auto auto 0;width:100%;height:var(--app-viewport-height,100dvh);min-height:0;background:#000}
+.prompter-stage{width:100%;height:100%;min-height:100%;background:#000}
+.scroll-viewport{width:100%;height:100%}
+.prompter-text{padding-bottom:40vh}
+.countdown-overlay{width:100%;height:100%;min-width:100%;min-height:100%;background:#000}
+.countdown-overlay.warning{background:#d70000;animation:flashRed .58s ease-in-out infinite}
+@keyframes flashRed{0%,100%{background:#df0000}50%{background:#a90000}}
+
+button:focus:not(:focus-visible),input:focus:not(:focus-visible),select:focus:not(:focus-visible){outline:none}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+
+dialog{position:fixed;inset:auto 0 0 0;width:100%;max-width:none;max-height:calc(var(--app-viewport-height,100dvh) - var(--safe-top));margin:0;padding:0 0 var(--safe-bottom);overflow:hidden;border:1px solid #ffffff20;border-bottom:0;border-radius:26px 26px 0 0;background:#1c1c1e;color:#fff;box-shadow:0 -18px 60px #000b}
+dialog[open]{display:block}
+dialog form{display:flex;max-height:inherit;min-height:0;flex-direction:column}
+dialog header{min-height:58px;flex:0 0 auto;padding:7px 14px;background:#242426e8;backdrop-filter:blur(18px)}
+dialog header strong{font-size:18px;font-weight:700}
+dialog header .text-button{min-width:64px;min-height:44px;font-size:17px}
+dialog header button:last-child{justify-content:flex-end}
+.settings-body{display:flex;min-height:0;flex:1;flex-direction:column;gap:24px;padding:20px 20px 22px;overflow-y:auto;overscroll-behavior:contain}
+.setting-group{display:grid;gap:8px}
+.setting-heading{display:flex;min-height:26px;align-items:center;justify-content:space-between;gap:16px}
+.setting-heading label,.countdown-setting legend,.setting-row,.setting-toggle{font-size:17px;font-weight:500;letter-spacing:0;text-transform:none;color:#f5f5f7}
+.setting-heading output{color:#b3b3ba;font-size:17px;font-variant-numeric:tabular-nums}
+.settings-body input[type=range]{width:100%}
+.settings-body .setting-row,.settings-body .setting-toggle{display:flex;min-height:52px;flex-direction:row;align-items:center;justify-content:space-between;gap:20px}
+.countdown-setting{min-width:0;margin:0;padding:0;border:0}
+.countdown-setting legend{margin:0 0 10px;padding:0}
+.segmented-control{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:4px;padding:4px;border-radius:13px;background:#2c2c2e}
+.settings-body .segmented-control label{position:relative;display:block;min-width:0;margin:0}
+.segmented-control input{position:absolute;width:1px;height:1px;margin:0;opacity:0}
+.segmented-control span{display:grid;min-height:44px;place-items:center;border-radius:9px;color:#d3d3d8;font-size:16px;font-weight:600;font-variant-numeric:tabular-nums;cursor:pointer}
+.segmented-control input:checked+span{background:var(--blue);color:#fff;box-shadow:0 1px 4px #0008}
+.segmented-control input:focus-visible+span{outline:2px solid #fff;outline-offset:2px}
+.switch-control{position:relative;display:block;width:51px;height:31px;flex:0 0 51px}
+.switch-control input{position:absolute;z-index:2;inset:-7px;width:65px;height:45px;margin:0;opacity:0;cursor:pointer}
+.switch{position:absolute;inset:0;border-radius:999px;background:#4a4a4e;box-shadow:inset 0 0 0 1px #ffffff0d;transition:background .2s}
+.switch::after{content:"";position:absolute;top:2px;left:2px;width:27px;height:27px;border-radius:50%;background:#fff;box-shadow:0 2px 5px #0007;transition:transform .2s}
+.switch-control input:checked+.switch{background:#34c759}
+.switch-control input:checked+.switch::after{transform:translateX(20px)}
+.switch-control input:focus-visible+.switch{outline:2px solid var(--blue);outline-offset:3px}
+.color-row{min-height:54px}
+.color-row input[type=color]{width:48px;height:48px;flex:0 0 48px}
+.settings-action{width:100%;min-height:52px;margin:0;border-color:#48484d;border-radius:14px;background:#242426;color:#f0f0f2;font-size:17px}
+.setting-status{margin:0;color:#9999a1;font-size:14px;line-height:1.35}
+
+@media(max-width:359px){
+  .segmented-control{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+
+@media(min-width:700px){
+  dialog{inset:50% auto auto 50%;width:min(calc(100% - 80px),640px);max-height:min(calc(var(--app-viewport-height,100dvh) - 80px),800px);padding-bottom:0;transform:translate(-50%,-50%);border:1px solid #ffffff20;border-radius:26px}
+  .settings-body{padding:26px 28px 30px}
+  .controls{bottom:var(--safe-bottom)}
+}
+
+@media(orientation:landscape) and (max-height:520px){
+  dialog{inset:0 0 auto;width:100%;height:var(--app-viewport-height,100dvh);max-height:none;padding-bottom:var(--safe-bottom);transform:none;border-radius:0}
+  dialog form{height:100%;max-height:100%}
+  .settings-body{gap:18px;padding-top:14px}
+  .controls{bottom:var(--safe-bottom)}
+  .countdown-overlay strong{font-size:min(36vh,180px)}
+}
+
+@media(prefers-reduced-motion:reduce){
+  .countdown-overlay.warning{animation:none;background:#c40000}
+  .switch,.switch::after{transition:none}
+}
