@@ -40,33 +40,35 @@
   </main>
 
   <main id="editorView" class="screen editor-screen" hidden>
-    <header class="nav-bar">
-      <button id="editorBack" class="text-button"><img src="icons/ui/chevron-left.svg" alt="">Volver</button>
-      <span>Editar discurso</span>
-      <button id="deleteButton" class="danger-button" aria-label="Eliminar"><img src="icons/ui/trash3.svg" alt=""></button>
-    </header>
-    <section class="editor-content">
-      <label for="titleInput">Título</label>
-      <input id="titleInput" class="title-input" maxlength="100" placeholder="Sin título">
-      <div class="editor-label-row"><label for="bodyInput">Texto</label><span>Formato de todo el discurso</span></div>
-      <div class="format-toolbar" role="toolbar" aria-label="Formato del discurso">
-        <select id="fontFamilySelect" aria-label="Tipografía">
-          <option value="system">Sistema</option><option value="avenir">Avenir</option><option value="georgia">Georgia</option><option value="helvetica">Helvetica</option><option value="menlo">Menlo</option>
-        </select>
-        <button id="boldButton" type="button" aria-label="Negrita"><img src="icons/ui/type-bold.svg" alt=""></button>
-        <button id="italicButton" type="button" aria-label="Cursiva"><img src="icons/ui/type-italic.svg" alt=""></button>
-        <button id="underlineButton" type="button" aria-label="Subrayado"><img src="icons/ui/type-underline.svg" alt=""></button>
-        <button id="strikeButton" type="button" aria-label="Tachado"><img src="icons/ui/type-strikethrough.svg" alt=""></button>
-        <select id="caseSelect" aria-label="Mayúsculas y minúsculas">
-          <option value="">Cambiar mayúsculas…</option><option value="upper">UPPERCASE</option><option value="lower">lowercase</option><option value="sentence">Tipo oración</option>
-        </select>
-      </div>
-      <div id="bodyInput" class="rich-editor" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Texto del discurso" data-placeholder="Escribe tu discurso…" spellcheck="true"></div>
-      <div class="editor-footer">
-        <span id="wordCount">0 palabras</span>
-        <button id="playButton" class="primary-button"><img src="icons/ui/play-fill.svg" alt="">Reproducir</button>
-      </div>
-    </section>
+    <div class="editor-sheet">
+      <header class="nav-bar">
+        <button id="editorBack" class="text-button"><img src="icons/ui/chevron-left.svg" alt="">Volver</button>
+        <span>Editar discurso</span>
+        <button id="deleteButton" class="danger-button" aria-label="Eliminar"><img src="icons/ui/trash3.svg" alt=""></button>
+      </header>
+      <section class="editor-content">
+        <label for="titleInput">Título</label>
+        <input id="titleInput" class="title-input" maxlength="100" placeholder="Sin título">
+        <div class="editor-label-row"><label for="bodyInput">Texto</label><span>Formato de todo el discurso</span></div>
+        <div class="format-toolbar" role="toolbar" aria-label="Formato del discurso">
+          <select id="fontFamilySelect" aria-label="Tipografía">
+            <option value="system">Sistema</option><option value="avenir">Avenir</option><option value="georgia">Georgia</option><option value="helvetica">Helvetica</option><option value="menlo">Menlo</option>
+          </select>
+          <button id="boldButton" type="button" aria-label="Negrita"><img src="icons/ui/type-bold.svg" alt=""></button>
+          <button id="italicButton" type="button" aria-label="Cursiva"><img src="icons/ui/type-italic.svg" alt=""></button>
+          <button id="underlineButton" type="button" aria-label="Subrayado"><img src="icons/ui/type-underline.svg" alt=""></button>
+          <button id="strikeButton" type="button" aria-label="Tachado"><img src="icons/ui/type-strikethrough.svg" alt=""></button>
+          <select id="caseSelect" aria-label="Mayúsculas y minúsculas">
+            <option value="">Cambiar mayúsculas…</option><option value="upper">UPPERCASE</option><option value="lower">lowercase</option><option value="sentence">Tipo oración</option>
+          </select>
+        </div>
+        <div id="bodyInput" class="rich-editor" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Texto del discurso" data-placeholder="Escribe tu discurso…" spellcheck="true"></div>
+        <div class="editor-footer">
+          <span id="wordCount">0 palabras</span>
+          <button id="playButton" class="primary-button"><img src="icons/ui/play-fill.svg" alt="">Reproducir</button>
+        </div>
+      </section>
+    </div>
   </main>
 
   <main id="prompterView" class="screen prompter-screen" hidden>
@@ -88,10 +90,10 @@
       </div>
       <section id="controls" class="controls">
         <div class="speed-row">
-          <img class="animal-icon" src="icons/ui/tortoise.svg" alt="Lento">
+          <img class="animal-icon" src="icons/ui/turtle.png" alt="Lento">
           <input id="speedSlider" type="range" min="1" max="20" step="1" value="5" aria-label="Velocidad">
-          <img class="animal-icon" src="icons/ui/hare.svg" alt="Rápido">
-          <output id="speedOutput">5 · 5,8 líneas/s</output>
+          <img class="animal-icon" src="icons/ui/rabbit.png" alt="Rápido">
+          <output id="speedOutput" class="visually-hidden">5 · 4,6 líneas/s</output>
         </div>
         <div class="control-row">
           <button id="restartButton" aria-label="Volver al inicio"><img src="icons/ui/skip-start-fill.svg" alt=""></button>

@@ -13,13 +13,21 @@
   function loadJSON(key, fallback) { try { return JSON.parse(localStorage.getItem(key)) ?? fallback; } catch { return fallback; } }
   function saveLibrary() { localStorage.setItem(STORAGE_KEY, JSON.stringify(library)); }
   function saveSettings() { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); }
-  function showScreen(id) { screens.forEach(x => $(x).hidden = x !== id); window.scrollTo(0,0); }
+  function showScreen(id) {
+    if(id==='editorView'){
+      $('libraryView').hidden=false; $('libraryView').inert=true; $('editorView').hidden=false; $('prompterView').hidden=true;
+    }else{
+      screens.forEach(x => $(x).hidden = x !== id); $('libraryView').inert=false;
+    }
+    window.scrollTo(0,0);
+  }
   function toast(message) { $('toast').textContent=message; $('toast').hidden=false; clearTimeout(toastTimer); toastTimer=setTimeout(()=>$('toast').hidden=true,2200); }
   function current() { return library.find(x => x.id === activeId); }
   function escapeHTML(value) { const d=document.createElement('div'); d.textContent=value; return d.innerHTML; }
   function formatDate(value) { return new Intl.DateTimeFormat('es',{day:'2-digit',month:'short'}).format(new Date(value)); }
   function linesPerSecond(level=settings.speed) { return .5+(Math.max(1,Math.min(20,Number(level)))-1)*(19.5/19); }
-  function updateSpeedDisplay(){ const level=Number(settings.speed); const lines=linesPerSecond(level); const label=Number.isInteger(lines)?String(lines):lines.toFixed(1).replace('.',','); $('speedOutput').value=`${level} · ${label} líneas/s`; $('speedSlider').setAttribute('aria-valuetext',`Nivel ${level}, ${label} líneas por segundo`); }
+  function updateRangeProgress(input){ const min=Number(input.min)||0; const max=Number(input.max)||100; const value=Number(input.value); const progress=max===min?0:(value-min)/(max-min)*100; input.style.setProperty('--range-progress',`${progress}%`); }
+  function updateSpeedDisplay(){ const level=Number(settings.speed); const lines=linesPerSecond(level); const label=Number.isInteger(lines)?String(lines):lines.toFixed(1).replace('.',','); $('speedOutput').value=`${level} · ${label} líneas/s`; $('speedSlider').setAttribute('aria-valuetext',`Nivel ${level}, ${label} líneas por segundo`); updateRangeProgress($('speedSlider')); }
   function speechStyle(s=current()){ return {...DEFAULT_STYLE,...(s?.style||{})}; }
   function setEditorStyle(style=speechStyle()){
     const editor=$('bodyInput'); editor.style.fontFamily=FONT_STACKS[style.font]||FONT_STACKS.system; editor.style.fontWeight=style.bold?'700':'400'; editor.style.fontStyle=style.italic?'italic':'normal'; editor.style.textDecoration=[style.underline?'underline':'',style.strike?'line-through':''].filter(Boolean).join(' ')||'none';
@@ -44,7 +52,7 @@
   function openPrompter(){ saveEditor(); const s=current(); if(!s?.body.trim())return; $('prompterTitle').textContent=s.title; $('prompterText').textContent=s.body; showScreen('prompterView'); applySettings(); resetPrompter(); }
   function applySettings(){
     document.documentElement.style.setProperty('--prompt-font',settings.font+'px'); document.documentElement.style.setProperty('--prompt-margin',settings.margin+'vw'); document.documentElement.style.setProperty('--prompt-color',settings.textColor);
-    $('speedSlider').value=settings.speed; updateSpeedDisplay(); $('fontSlider').value=settings.font; $('fontOutput').value=settings.font; $('marginSlider').value=settings.margin; $('marginOutput').value=settings.margin+'%'; $('textColorInput').value=settings.textColor; $('countdownSelect').value=String(settings.countdown); $('cueToggle').checked=settings.cue; $('autoHideToggle').checked=settings.autoHide;
+    $('speedSlider').value=settings.speed; updateSpeedDisplay(); $('fontSlider').value=settings.font; updateRangeProgress($('fontSlider')); $('fontOutput').value=settings.font; $('marginSlider').value=settings.margin; updateRangeProgress($('marginSlider')); $('marginOutput').value=settings.margin+'%'; $('textColorInput').value=settings.textColor; $('countdownSelect').value=String(settings.countdown); $('cueToggle').checked=settings.cue; $('autoHideToggle').checked=settings.autoHide;
     const style=speechStyle(); const text=$('prompterText'); text.style.fontFamily=FONT_STACKS[style.font]||FONT_STACKS.system; text.style.fontWeight=style.bold?'700':'500'; text.style.fontStyle=style.italic?'italic':'normal'; text.style.textDecoration=[style.underline?'underline':'',style.strike?'line-through':''].filter(Boolean).join(' ')||'none';
     $('scriptTransform').className='script-transform'+(settings.mirrorH?' mirrored-h':'')+(settings.mirrorV?' mirrored-v':'');
     $('mirrorHButton').classList.toggle('active',settings.mirrorH); $('mirrorVButton').classList.toggle('active',settings.mirrorV);
