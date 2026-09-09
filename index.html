@@ -10,7 +10,7 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
   <link rel="apple-touch-icon" sizes="180x180" href="icons/icon-180.png">
-  <link rel="stylesheet" href="styles.css?v=10">
+  <link rel="stylesheet" href="styles.css?v=11">
   <title>MiniPrompter</title>
 </head>
 <body>
@@ -115,12 +115,34 @@
     <form method="dialog">
       <header><button value="cancel" class="text-button">Volver</button><strong>Ajustes</strong><button value="ok" class="text-button">Listo</button></header>
       <div class="settings-body">
-        <label>Tamaño del texto <output id="fontOutput">62</output><input id="fontSlider" type="range" min="28" max="104" step="2" value="62"></label>
-        <label>Márgenes <output id="marginOutput">8%</output><input id="marginSlider" type="range" min="2" max="24" step="1" value="8"></label>
-        <label class="color-row"><span>Color del texto</span><input id="textColorInput" type="color" value="#ffffff"></label>
-        <label>Cuenta regresiva <select id="countdownSelect"><option value="0">Sin cuenta</option><option value="3">3 segundos</option><option value="5" selected>5 segundos</option><option value="10">10 segundos</option><option value="15">15 segundos</option><option value="20">20 segundos</option></select></label>
-        <label class="toggle-row"><span>Indicador lateral</span><input id="cueToggle" type="checkbox" checked></label>
-        <label class="toggle-row"><span>Ocultar controles al iniciar</span><input id="autoHideToggle" type="checkbox" checked></label>
+        <div class="setting-group">
+          <div class="setting-heading"><label for="fontSlider">Tamaño del texto</label><output id="fontOutput" for="fontSlider">62</output></div>
+          <input id="fontSlider" type="range" min="28" max="104" step="2" value="62">
+        </div>
+        <div class="setting-group">
+          <div class="setting-heading"><label for="marginSlider">Márgenes</label><output id="marginOutput" for="marginSlider">8%</output></div>
+          <input id="marginSlider" type="range" min="2" max="24" step="1" value="8">
+        </div>
+        <label class="setting-row color-row"><span>Color del texto</span><input id="textColorInput" type="color" value="#ffffff" aria-label="Color del texto"></label>
+        <fieldset class="setting-group countdown-setting">
+          <legend>Cuenta regresiva</legend>
+          <div class="segmented-control" role="radiogroup" aria-label="Cuenta regresiva">
+            <label><input type="radio" name="countdown" value="0"><span>No</span></label>
+            <label><input type="radio" name="countdown" value="3"><span>3</span></label>
+            <label><input type="radio" name="countdown" value="5" checked><span>5</span></label>
+            <label><input type="radio" name="countdown" value="10"><span>10</span></label>
+            <label><input type="radio" name="countdown" value="15"><span>15</span></label>
+            <label><input type="radio" name="countdown" value="20"><span>20</span></label>
+          </div>
+        </fieldset>
+        <label class="setting-toggle">
+          <span>Indicador lateral</span>
+          <span class="switch-control"><input id="cueToggle" type="checkbox" checked><span class="switch" aria-hidden="true"></span></span>
+        </label>
+        <label class="setting-toggle">
+          <span>Ocultar controles al iniciar</span>
+          <span class="switch-control"><input id="autoHideToggle" type="checkbox" checked><span class="switch" aria-hidden="true"></span></span>
+        </label>
         <button id="fullscreenButton" type="button" class="settings-action">Usar pantalla completa</button>
         <button id="wakeLockButton" type="button" class="settings-action">Mantener pantalla encendida</button>
         <small id="wakeLockStatus" class="setting-status" aria-live="polite">Se activa automáticamente al reproducir.</small>
@@ -129,6 +151,6 @@
   </dialog>
 
   <div id="toast" class="toast" role="status" hidden></div>
-  <script src="app.js?v=10" defer></script>
+  <script src="app.js?v=11" defer></script>
 </body>
 </html>
