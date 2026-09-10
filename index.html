@@ -12,7 +12,7 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
   <link rel="apple-touch-icon" sizes="180x180" href="icons/icon-180.png">
-  <link rel="stylesheet" href="styles.css?v=14">
+  <link rel="stylesheet" href="styles.css?v=16">
   <title>MiniPrompter</title>
 </head>
 <body>
@@ -113,9 +113,9 @@
     </div>
   </main>
 
-  <dialog id="settingsDialog">
+  <dialog id="settingsDialog" tabindex="-1" aria-labelledby="settingsTitle">
     <form method="dialog">
-      <header><button value="cancel" class="text-button">Volver</button><strong>Ajustes</strong><button value="ok" class="text-button">Listo</button></header>
+      <header><button value="cancel" class="text-button">Volver</button><strong id="settingsTitle">Ajustes</strong><button value="ok" class="text-button">Listo</button></header>
       <div class="settings-body">
         <div class="setting-group">
           <div class="setting-heading"><label for="fontSlider">Tamaño del texto</label><output id="fontOutput" for="fontSlider">62</output></div>
@@ -153,6 +153,6 @@
   </dialog>
 
   <div id="toast" class="toast" role="status" hidden></div>
-  <script src="app.js?v=14" defer></script>
+  <script src="app.js?v=16" defer></script>
 </body>
 </html>
