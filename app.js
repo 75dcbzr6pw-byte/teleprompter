@@ -7,16 +7,19 @@
   let library = loadJSON(STORAGE_KEY, []);
   const DEFAULT_STYLE = {font:'system',bold:false,italic:false,underline:false,strike:false};
   const FONT_STACKS = {system:'-apple-system,BlinkMacSystemFont,"SF Pro Display",sans-serif',avenir:'"Avenir Next",Avenir,sans-serif',georgia:'Georgia,serif',helvetica:'"Helvetica Neue",Helvetica,sans-serif',menlo:'Menlo,monospace'};
-  const SPEED_SEGMENTS=20, MAX_LINES_PER_SECOND=.5+3*(19.5/19), SPEED_SCALE_VERSION=2;
+  const SPEED_SEGMENTS=40, PREVIOUS_SPEED_SEGMENTS=20, MAX_LINES_PER_SECOND=.5+3*(19.5/19), SPEED_SCALE_VERSION=3;
   const storedSettings=loadJSON(SETTINGS_KEY,{});
   const settingsNeedMigration=storedSettings.speedScaleVersion!==SPEED_SCALE_VERSION;
   if(settingsNeedMigration&&Number.isFinite(Number(storedSettings.speed))){
-    const oldLevel=Number(storedSettings.speed), oldRate=oldLevel<=0?0:.5+(Math.max(1,Math.min(20,oldLevel))-1)*(19.5/19);
+    const oldLevel=Number(storedSettings.speed);
+    const oldRate=storedSettings.speedScaleVersion===2
+      ? Math.max(0,Math.min(PREVIOUS_SPEED_SEGMENTS,oldLevel))/PREVIOUS_SPEED_SEGMENTS*MAX_LINES_PER_SECOND
+      : oldLevel<=0?0:.5+(Math.max(1,Math.min(20,oldLevel))-1)*(19.5/19);
     storedSettings.speed=Math.round(Math.min(MAX_LINES_PER_SECOND,oldRate)/MAX_LINES_PER_SECOND*SPEED_SEGMENTS);
   }
-  let settings = {...{speed:5,font:62,margin:8,countdown:5,cue:true,autoHide:true,mirrorH:false,mirrorV:false,textColor:'#ffffff'}, ...storedSettings, speedScaleVersion:SPEED_SCALE_VERSION};
+  let settings = {...{speed:10,font:62,margin:8,countdown:5,cue:true,autoHide:true,mirrorH:false,mirrorV:false,textColor:'#ffffff'}, ...storedSettings, speedScaleVersion:SPEED_SCALE_VERSION};
   settings.speed=Math.round(Math.max(0,Math.min(SPEED_SEGMENTS,Number(settings.speed)||0)));
-  let activeId = null, scrolling = false, countdownActive = false, playbackState = 'ready', raf = 0, lastFrame = 0, scrollPosition = 0, countdownTimer = 0, wakeLock = null, toastTimer = 0, savedRange = null, settingsPlaybackState = 'idle', dragStart = null, suppressStageClick = false;
+  let activeId = null, scrolling = false, countdownActive = false, playbackState = 'ready', raf = 0, layoutRaf = 0, lastFrame = 0, scrollPosition = 0, countdownTimer = 0, wakeLock = null, toastTimer = 0, savedRange = null, settingsPlaybackState = 'idle', dragStart = null, suppressStageClick = false;
 
   function loadJSON(key, fallback) { try { return JSON.parse(localStorage.getItem(key)) ?? fallback; } catch { return fallback; } }
   function saveLibrary() { localStorage.setItem(STORAGE_KEY, JSON.stringify(library)); }
@@ -153,12 +156,26 @@
   }
   function setPlayState(playing){ $('playIcon').src=playing?'icons/ui/pause-fill.svg':'icons/ui/play-fill.svg'; $('startButton').setAttribute('aria-label',playing?'Pausar':'Iniciar'); }
   function positionFirstLine(){
-    const viewport=$('scrollViewport'), text=$('prompterText'), controls=$('controls'), stage=$('prompterStage');
+    const viewport=$('scrollViewport'), text=$('prompterText');
     const lineHeight=parseFloat(getComputedStyle(text).lineHeight)||settings.font*1.28;
-    const stageRect=stage.getBoundingClientRect(), controlsRect=controls.getBoundingClientRect();
-    const readingBottom=Math.min(viewport.clientHeight,controlsRect.top-stageRect.top)-20;
-    text.style.paddingTop=Math.max(100,readingBottom-lineHeight)+'px';
-    text.style.paddingBottom=Math.max(controlsRect.height+20,viewport.clientHeight-readingBottom)+'px';
+    const safeBottom=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--safe-bottom'))||0;
+    const edgeGap=Math.max(10,safeBottom+8);
+    const readingBottom=Math.max(lineHeight,viewport.clientHeight-edgeGap);
+    text.style.paddingTop=Math.max(0,readingBottom-lineHeight)+'px';
+    text.style.paddingBottom=Math.max(lineHeight,edgeGap)+'px';
+  }
+  function schedulePrompterLayout({reset=false}={}){
+    cancelAnimationFrame(layoutRaf);
+    layoutRaf=requestAnimationFrame(()=>{layoutRaf=requestAnimationFrame(()=>{
+      layoutRaf=0;
+      if($('prompterView').hidden)return;
+      syncViewportHeight();
+      const viewport=$('scrollViewport');
+      const position=reset?0:Math.max(scrollPosition,viewport.scrollTop);
+      positionFirstLine();
+      scrollPosition=reset?0:Math.min(position,Math.max(0,viewport.scrollHeight-viewport.clientHeight));
+      viewport.scrollTop=scrollPosition;
+    });});
   }
   function resumeScrollAfterSetting(){
     playbackState='playing'; scrolling=true; setPlayState(true); requestWakeLock(); lastFrame=performance.now();
@@ -177,7 +194,7 @@
     }
     if(keepPlaying&&!scrolling)resumeScrollAfterSetting();
   }
-  function resetPrompter(){ stopScroll('ready'); countdownActive=false; clearInterval(countdownTimer); $('countdownOverlay').hidden=true; $('countdownOverlay').classList.remove('warning'); $('controls').classList.remove('hidden'); positionFirstLine(); scrollPosition=0; $('scrollViewport').scrollTop=0; setPlayState(false); }
+  function resetPrompter(){ stopScroll('ready'); countdownActive=false; clearInterval(countdownTimer); $('countdownOverlay').hidden=true; $('countdownOverlay').classList.remove('warning'); $('controls').classList.remove('hidden'); positionFirstLine(); scrollPosition=0; $('scrollViewport').scrollTop=0; schedulePrompterLayout({reset:true}); setPlayState(false); }
   function stopScroll(nextState='paused'){ playbackState=nextState; scrolling=false; cancelAnimationFrame(raf); raf=0; lastFrame=0; setPlayState(false); releaseWakeLock(); }
   function startCountdown(){
     if(countdownActive)return;
@@ -234,7 +251,7 @@
   function handleViewportChange(){
     syncViewportHeight();
     const keepPlaying=scrolling||settingsPlaybackState==='playing';
-    if(!$('prompterView').hidden&&!keepPlaying){const viewport=$('scrollViewport');const position=Math.max(scrollPosition,viewport.scrollTop);positionFirstLine();scrollPosition=Math.min(position,Math.max(0,viewport.scrollHeight-viewport.clientHeight));viewport.scrollTop=scrollPosition;}
+    if(!$('prompterView').hidden&&!keepPlaying)schedulePrompterLayout({reset:playbackState==='ready'});
   }
   window.addEventListener('resize',handleViewportChange); window.addEventListener('orientationchange',handleViewportChange); window.visualViewport?.addEventListener('resize',handleViewportChange); window.visualViewport?.addEventListener('scroll',syncViewportHeight);
   if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js'));
