@@ -7,12 +7,21 @@
   let library = loadJSON(STORAGE_KEY, []);
   const DEFAULT_STYLE = {font:'system',bold:false,italic:false,underline:false,strike:false};
   const FONT_STACKS = {system:'-apple-system,BlinkMacSystemFont,"SF Pro Display",sans-serif',avenir:'"Avenir Next",Avenir,sans-serif',georgia:'Georgia,serif',helvetica:'"Helvetica Neue",Helvetica,sans-serif',menlo:'Menlo,monospace'};
-  let settings = {...{speed:5,font:62,margin:8,countdown:5,cue:true,autoHide:true,mirrorH:false,mirrorV:false,textColor:'#ffffff'}, ...loadJSON(SETTINGS_KEY,{})};
-  let activeId = null, scrolling = false, countdownActive = false, raf = 0, lastFrame = 0, scrollPosition = 0, countdownTimer = 0, wakeLock = null, toastTimer = 0, savedRange = null, settingsPlaybackState = 'idle';
+  const SPEED_SEGMENTS=20, MAX_LINES_PER_SECOND=.5+3*(19.5/19), SPEED_SCALE_VERSION=2;
+  const storedSettings=loadJSON(SETTINGS_KEY,{});
+  const settingsNeedMigration=storedSettings.speedScaleVersion!==SPEED_SCALE_VERSION;
+  if(settingsNeedMigration&&Number.isFinite(Number(storedSettings.speed))){
+    const oldLevel=Number(storedSettings.speed), oldRate=oldLevel<=0?0:.5+(Math.max(1,Math.min(20,oldLevel))-1)*(19.5/19);
+    storedSettings.speed=Math.round(Math.min(MAX_LINES_PER_SECOND,oldRate)/MAX_LINES_PER_SECOND*SPEED_SEGMENTS);
+  }
+  let settings = {...{speed:5,font:62,margin:8,countdown:5,cue:true,autoHide:true,mirrorH:false,mirrorV:false,textColor:'#ffffff'}, ...storedSettings, speedScaleVersion:SPEED_SCALE_VERSION};
+  settings.speed=Math.round(Math.max(0,Math.min(SPEED_SEGMENTS,Number(settings.speed)||0)));
+  let activeId = null, scrolling = false, countdownActive = false, playbackState = 'ready', raf = 0, lastFrame = 0, scrollPosition = 0, countdownTimer = 0, wakeLock = null, toastTimer = 0, savedRange = null, settingsPlaybackState = 'idle', dragStart = null, suppressStageClick = false;
 
   function loadJSON(key, fallback) { try { return JSON.parse(localStorage.getItem(key)) ?? fallback; } catch { return fallback; } }
   function saveLibrary() { localStorage.setItem(STORAGE_KEY, JSON.stringify(library)); }
   function saveSettings() { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); }
+  if(settingsNeedMigration)saveSettings();
   function viewportMetrics() {
     const visual = window.visualViewport;
     const standalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
@@ -53,9 +62,9 @@
   function current() { return library.find(x => x.id === activeId); }
   function escapeHTML(value) { const d=document.createElement('div'); d.textContent=value; return d.innerHTML; }
   function formatDate(value) { return new Intl.DateTimeFormat('es',{day:'2-digit',month:'short'}).format(new Date(value)); }
-  function linesPerSecond(level=settings.speed) { return .5+(Math.max(1,Math.min(20,Number(level)))-1)*(19.5/19); }
+  function linesPerSecond(level=settings.speed) { return Math.max(0,Math.min(SPEED_SEGMENTS,Number(level)))/SPEED_SEGMENTS*MAX_LINES_PER_SECOND; }
   function updateRangeProgress(input){ const min=Number(input.min)||0; const max=Number(input.max)||100; const value=Number(input.value); const progress=max===min?0:(value-min)/(max-min)*100; input.style.setProperty('--range-progress',`${progress}%`); }
-  function updateSpeedDisplay(){ const level=Number(settings.speed); const lines=linesPerSecond(level); const label=Number.isInteger(lines)?String(lines):lines.toFixed(1).replace('.',','); $('speedOutput').value=`${level} · ${label} líneas/s`; $('speedSlider').setAttribute('aria-valuetext',`Nivel ${level}, ${label} líneas por segundo`); updateRangeProgress($('speedSlider')); }
+  function updateSpeedDisplay(){ const level=Number(settings.speed); const lines=linesPerSecond(level); const label=lines.toFixed(2).replace(/0+$/,'').replace(/[.,]$/,'').replace('.',','); $('speedOutput').value=`${level} · ${label} líneas/s`; $('speedSlider').setAttribute('aria-valuetext',`Segmento ${level} de ${SPEED_SEGMENTS}, ${label} líneas por segundo`); updateRangeProgress($('speedSlider')); }
   function speechStyle(s=current()){ return {...DEFAULT_STYLE,...(s?.style||{})}; }
   function sanitizeHTML(value=''){
     const template=document.createElement('template'); template.innerHTML=String(value);
@@ -152,7 +161,7 @@
     text.style.paddingBottom=Math.max(controlsRect.height+20,viewport.clientHeight-readingBottom)+'px';
   }
   function resumeScrollAfterSetting(){
-    scrolling=true; setPlayState(true); requestWakeLock(); lastFrame=performance.now();
+    playbackState='playing'; scrolling=true; setPlayState(true); requestWakeLock(); lastFrame=performance.now();
     if(!raf)raf=requestAnimationFrame(step);
   }
   function updateSetting(key,value,{layout=false,apply=true}={}){
@@ -168,18 +177,22 @@
     }
     if(keepPlaying&&!scrolling)resumeScrollAfterSetting();
   }
-  function resetPrompter(){ stopScroll(); countdownActive=false; clearInterval(countdownTimer); $('countdownOverlay').hidden=true; $('controls').classList.remove('hidden'); positionFirstLine(); scrollPosition=0; $('scrollViewport').scrollTop=0; setPlayState(false); }
-  function stopScroll(){ scrolling=false; cancelAnimationFrame(raf); raf=0; lastFrame=0; setPlayState(false); releaseWakeLock(); }
+  function resetPrompter(){ stopScroll('ready'); countdownActive=false; clearInterval(countdownTimer); $('countdownOverlay').hidden=true; $('countdownOverlay').classList.remove('warning'); $('controls').classList.remove('hidden'); positionFirstLine(); scrollPosition=0; $('scrollViewport').scrollTop=0; setPlayState(false); }
+  function stopScroll(nextState='paused'){ playbackState=nextState; scrolling=false; cancelAnimationFrame(raf); raf=0; lastFrame=0; setPlayState(false); releaseWakeLock(); }
   function startCountdown(){
-    if(scrolling){stopScroll();return;} requestWakeLock(); let remaining=Number(settings.countdown);
+    if(countdownActive)return;
+    if(scrolling){stopScroll('paused');return;}
+    if(playbackState==='paused'){beginScroll();return;}
+    if(playbackState==='finished')resetPrompter();
+    requestWakeLock(); let remaining=Number(settings.countdown);
     if(remaining<=0){beginScroll();return;} const overlay=$('countdownOverlay'); overlay.hidden=false;
-    countdownActive=true;
+    playbackState='countdown'; countdownActive=true;
     const draw=()=>{ $('countdownNumber').textContent=remaining; const warn=remaining<=3; overlay.classList.toggle('warning',warn); $('countdownMessage').textContent=warn?'MANTÉNGASE QUIETO':''; };
     draw(); clearInterval(countdownTimer); countdownTimer=setInterval(()=>{remaining--; if(remaining<=0){clearInterval(countdownTimer);countdownActive=false;overlay.hidden=true;overlay.classList.remove('warning');beginScroll();}else draw();},1000);
   }
-  function beginScroll(){ scrolling=true; scrollPosition=$('scrollViewport').scrollTop; setPlayState(true); if(settings.autoHide)$('controls').classList.add('hidden'); requestWakeLock(); lastFrame=performance.now(); raf=requestAnimationFrame(step); }
+  function beginScroll(){ playbackState='playing'; countdownActive=false; scrolling=true; scrollPosition=$('scrollViewport').scrollTop; setPlayState(true); if(settings.autoHide)$('controls').classList.add('hidden'); requestWakeLock(); lastFrame=performance.now(); if(!raf)raf=requestAnimationFrame(step); }
   function scrollRate(){ const lineHeight=parseFloat(getComputedStyle($('prompterText')).lineHeight)||settings.font*1.28; return lineHeight*linesPerSecond(); }
-  function step(now){ if(!scrolling)return; const dt=Math.min((now-lastFrame)/1000,.05);lastFrame=now;const viewport=$('scrollViewport');scrollPosition+=scrollRate()*dt;viewport.scrollTop=scrollPosition;if(viewport.scrollTop+viewport.clientHeight>=viewport.scrollHeight-2){stopScroll();$('controls').classList.remove('hidden');return;}raf=requestAnimationFrame(step); }
+  function step(now){ if(!scrolling)return; const dt=Math.min((now-lastFrame)/1000,.05);lastFrame=now;const viewport=$('scrollViewport');scrollPosition+=scrollRate()*dt;viewport.scrollTop=scrollPosition;if(viewport.scrollTop+viewport.clientHeight>=viewport.scrollHeight-2){stopScroll('finished');$('controls').classList.remove('hidden');return;}raf=requestAnimationFrame(step); }
   function updateWakeLockStatus(message,active=false){ $('wakeLockStatus').textContent=message; $('wakeLockButton').classList.toggle('active',active); }
   async function requestWakeLock({notify=false}={}){
     if(!('wakeLock'in navigator)){ updateWakeLockStatus('Este navegador no ofrece bloqueo de pantalla.'); if(notify)toast('Instálala desde Safari para mantener la pantalla encendida'); return false; }
@@ -205,13 +218,15 @@
   $('caseSelect').onchange=e=>{if(e.target.value)changeSelectedCase(e.target.value);e.target.value='';};
   document.addEventListener('selectionchange',rememberSelection);
   $('deleteButton').onclick=()=>{if(!current()||!confirm('¿Eliminar este discurso?'))return;library=library.filter(s=>s.id!==activeId);saveLibrary();renderLibrary();showScreen('libraryView');};
-  $('prompterBack').onclick=()=>{resetPrompter();showScreen('editorView');}; $('settingsButton').onclick=()=>{settingsPlaybackState=scrolling?'playing':countdownActive?'countdown':'paused';syncViewportHeight();applySettings();$('settingsDialog').showModal();}; $('startButton').onclick=startCountdown; $('restartButton').onclick=resetPrompter;
+  $('prompterBack').onclick=()=>{resetPrompter();showScreen('editorView');}; $('settingsButton').onclick=()=>{settingsPlaybackState=playbackState;syncViewportHeight();applySettings();$('settingsDialog').showModal();}; $('startButton').onclick=startCountdown; $('restartButton').onclick=resetPrompter;
   $('settingsDialog').addEventListener('close',()=>{if(settingsPlaybackState==='playing'&&!scrolling)resumeScrollAfterSetting();settingsPlaybackState='idle';});
   $('settingsDialog').addEventListener('pointerdown',event=>event.stopPropagation());
   $('speedSlider').oninput=e=>{updateSetting('speed',Number(e.target.value),{apply:false});updateSpeedDisplay();};
   $('mirrorHButton').onclick=()=>updateSetting('mirrorH',!settings.mirrorH); $('mirrorVButton').onclick=()=>updateSetting('mirrorV',!settings.mirrorV);
-  $('fontDownButton').onclick=()=>updateSetting('font',Math.max(28,settings.font-2),{layout:true}); $('fontUpButton').onclick=()=>updateSetting('font',Math.min(104,settings.font+2),{layout:true}); $('prompterStage').addEventListener('click',e=>{if(!e.target.closest('button,input,.controls,.prompter-header'))$('controls').classList.toggle('hidden');});
-  $('scrollViewport').addEventListener('pointerdown',()=>{if(scrolling&&!$('settingsDialog').open)stopScroll();},{passive:true});
+  $('fontDownButton').onclick=()=>updateSetting('font',Math.max(28,settings.font-2),{layout:true}); $('fontUpButton').onclick=()=>updateSetting('font',Math.min(104,settings.font+2),{layout:true}); $('prompterStage').addEventListener('click',e=>{if(suppressStageClick){suppressStageClick=false;return;}if(!e.target.closest('button,input,.controls,.prompter-header'))$('controls').classList.toggle('hidden');});
+  $('scrollViewport').addEventListener('pointerdown',event=>{if(scrolling&&!$('settingsDialog').open)dragStart={x:event.clientX,y:event.clientY};},{passive:true});
+  $('scrollViewport').addEventListener('pointermove',event=>{if(!dragStart||!scrolling)return;if(Math.hypot(event.clientX-dragStart.x,event.clientY-dragStart.y)<14)return;dragStart=null;suppressStageClick=true;setTimeout(()=>suppressStageClick=false,400);stopScroll('paused');$('controls').classList.remove('hidden');},{passive:true});
+  ['pointerup','pointercancel'].forEach(type=>$('scrollViewport').addEventListener(type,()=>{dragStart=null;},{passive:true}));
   $('fontSlider').oninput=e=>updateSetting('font',Number(e.target.value),{layout:true}); $('marginSlider').oninput=e=>updateSetting('margin',Number(e.target.value),{layout:true}); $('textColorInput').oninput=e=>updateSetting('textColor',e.target.value); document.querySelectorAll('input[name="countdown"]').forEach(input=>input.onchange=e=>{if(e.target.checked)updateSetting('countdown',Number(e.target.value),{apply:false});}); $('cueToggle').onchange=e=>updateSetting('cue',e.target.checked); $('autoHideToggle').onchange=e=>updateSetting('autoHide',e.target.checked,{apply:false}); $('fullscreenButton').onclick=fullscreen; $('wakeLockButton').onclick=()=>requestWakeLock({notify:true});
   $('importTextButton').onclick=()=>$('fileInput').click(); $('fileInput').onchange=e=>{if(e.target.files[0])importText(e.target.files[0]);e.target.value='';}; $('backupButton').onclick=exportBackup; $('restoreButton').onclick=()=>$('backupInput').click(); $('backupInput').onchange=e=>{if(e.target.files[0])restoreBackup(e.target.files[0]);e.target.value='';};
   window.addEventListener('popstate',()=>{if(!$('prompterView').hidden){resetPrompter();showScreen('editorView');}else if(!$('editorView').hidden)leaveEditor();});
@@ -219,10 +234,10 @@
   function handleViewportChange(){
     syncViewportHeight();
     const keepPlaying=scrolling||settingsPlaybackState==='playing';
-    if(!$('prompterView').hidden&&!keepPlaying){positionFirstLine();scrollPosition=0;$('scrollViewport').scrollTop=0;}
+    if(!$('prompterView').hidden&&!keepPlaying){const viewport=$('scrollViewport');const position=Math.max(scrollPosition,viewport.scrollTop);positionFirstLine();scrollPosition=Math.min(position,Math.max(0,viewport.scrollHeight-viewport.clientHeight));viewport.scrollTop=scrollPosition;}
   }
   window.addEventListener('resize',handleViewportChange); window.addEventListener('orientationchange',handleViewportChange); window.visualViewport?.addEventListener('resize',handleViewportChange); window.visualViewport?.addEventListener('scroll',syncViewportHeight);
   if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js'));
-  window.MiniPrompterDiagnostics={viewport:viewportMetrics};
+  window.MiniPrompterDiagnostics={viewport:viewportMetrics,playback:()=>({state:playbackState,scrolling,countdownActive,scrollTop:$('scrollViewport').scrollTop,controlsHidden:$('controls').classList.contains('hidden')}),speed:()=>({segment:Number(settings.speed),linesPerSecond:linesPerSecond()})};
   syncViewportHeight();applySettings();renderLibrary();
 })();
