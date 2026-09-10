@@ -10,7 +10,7 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
   <link rel="apple-touch-icon" sizes="180x180" href="icons/icon-180.png">
-  <link rel="stylesheet" href="styles.css?v=13">
+  <link rel="stylesheet" href="styles.css?v=14">
   <title>MiniPrompter</title>
 </head>
 <body>
@@ -95,9 +95,9 @@
       <section id="controls" class="controls">
         <div class="speed-row">
           <img class="animal-icon" src="icons/ui/turtle.png" alt="Lento">
-          <input id="speedSlider" type="range" min="0" max="20" step="1" value="5" aria-label="Velocidad">
+          <input id="speedSlider" type="range" min="0" max="40" step="1" value="10" aria-label="Velocidad">
           <img class="animal-icon" src="icons/ui/rabbit.png" alt="Rápido">
-          <output id="speedOutput" class="visually-hidden">5 · 0,9 líneas/s</output>
+          <output id="speedOutput" class="visually-hidden">10 · 0,9 líneas/s</output>
         </div>
         <div class="control-row">
           <button id="restartButton" aria-label="Volver al inicio"><img src="icons/ui/skip-start-fill.svg" alt=""></button>
@@ -151,6 +151,6 @@
   </dialog>
 
   <div id="toast" class="toast" role="status" hidden></div>
-  <script src="app.js?v=13" defer></script>
+  <script src="app.js?v=14" defer></script>
 </body>
 </html>
