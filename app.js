@@ -159,10 +159,14 @@
     const viewport=$('scrollViewport'), text=$('prompterText');
     const lineHeight=parseFloat(getComputedStyle(text).lineHeight)||settings.font*1.28;
     const safeBottom=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--safe-bottom'))||0;
+    const cueRatio=(parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--cue-position'))||46)/100;
+    const cueHalfHeight=parseFloat(getComputedStyle($('cue')).borderTopWidth)||0;
     const edgeGap=Math.max(10,safeBottom+8);
     const readingBottom=Math.max(lineHeight,viewport.clientHeight-edgeGap);
+    const cueY=viewport.clientHeight*cueRatio+cueHalfHeight;
+    const trailingSpace=Math.max(lineHeight,viewport.clientHeight-cueY-lineHeight/2);
     text.style.paddingTop=Math.max(0,readingBottom-lineHeight)+'px';
-    text.style.paddingBottom=Math.max(lineHeight,edgeGap)+'px';
+    text.style.paddingBottom=trailingSpace+'px';
   }
   function schedulePrompterLayout({reset=false}={}){
     cancelAnimationFrame(layoutRaf);
@@ -235,7 +239,7 @@
   $('caseSelect').onchange=e=>{if(e.target.value)changeSelectedCase(e.target.value);e.target.value='';};
   document.addEventListener('selectionchange',rememberSelection);
   $('deleteButton').onclick=()=>{if(!current()||!confirm('¿Eliminar este discurso?'))return;library=library.filter(s=>s.id!==activeId);saveLibrary();renderLibrary();showScreen('libraryView');};
-  $('prompterBack').onclick=()=>{resetPrompter();showScreen('editorView');}; $('settingsButton').onclick=()=>{settingsPlaybackState=playbackState;syncViewportHeight();applySettings();$('settingsDialog').showModal();}; $('startButton').onclick=startCountdown; $('restartButton').onclick=resetPrompter;
+  $('prompterBack').onclick=()=>{resetPrompter();showScreen('editorView');}; $('settingsButton').onclick=()=>{settingsPlaybackState=playbackState;syncViewportHeight();applySettings();const dialog=$('settingsDialog');dialog.showModal();dialog.focus({preventScroll:true});}; $('startButton').onclick=startCountdown; $('restartButton').onclick=resetPrompter;
   $('settingsDialog').addEventListener('close',()=>{if(settingsPlaybackState==='playing'&&!scrolling)resumeScrollAfterSetting();settingsPlaybackState='idle';});
   $('settingsDialog').addEventListener('pointerdown',event=>event.stopPropagation());
   $('speedSlider').oninput=e=>{updateSetting('speed',Number(e.target.value),{apply:false});updateSpeedDisplay();};
